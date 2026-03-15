@@ -2,7 +2,7 @@
 
     Using a time-of-flight sensor, it detects and records when a pet exits and returns.
 
-    Last Build: 2-Mar-2026
+    Last Build: 12-Mar-2026
     FAQware Copyright 2026
 
     Licensed under a Creative Commons Attribution-NonCommercial 4.0 International Public
@@ -47,7 +47,7 @@
     range is limited 300 mm in software.
 */
 const bool debug = false;  // false for normal operation
-const char version[] = "1.4";
+const char version[] = "1.5";
 
 
 #include <WiFi.h>                       // external libraries
@@ -56,6 +56,7 @@ const char version[] = "1.4";
 #include <EEPROM.h>
 #include <Wire.h>
 #include <SparkFun_VL53L5CX_Library.h>
+#include <base64.h>
 
 #include "WiFI_SSID.h"                  // for your personal WiFi SSID and Password
 #include "display.h"                    // various LCD display routines
@@ -124,8 +125,9 @@ int lockoutSeconds = 12;      // ignore events less than x seconds apart
 //---------------- WiFi, Web Server & Time ------------------------------------------
 int wifi_timeout = 0;
 WiFiServer server(80);
-String webColor = "00CCFF";    // color sent for web page status
+int webColor = 0x00CCFF;       // color sent for web page status
 bool webShowLog = false;       // show log in web page
+int webIndicatorTimeout = 0;   // used to display web processing indicator
 String displayNowAction = "";  // text strings for web page
 String displayCurrentActionHead = "";
 String displayCurrentAction = "";
@@ -220,6 +222,11 @@ long releasedTime = 0;
 int buttonAction = NONE;
 String debugLastAction = "";
 
+// base64 images for web
+String Cat_Outside;         
+String Cat_Inside;
+String Cat_Ready;
+
 // ======================= Run Once ==============================
 void setup() {
   state = STARTUP;
@@ -239,6 +246,11 @@ void setup() {
   // STARTUP SCREEN
   Serial.println("");
   Serial.println("====== Pet Detective Started ======");
+
+  // build base64 images for web
+  Cat_Outside = base64::encode(Cat_Outside_123x170_gif, sizeof(Cat_Outside_123x170_gif));
+  Cat_Inside = base64::encode(Cat_Inside_123x170_gif, sizeof(Cat_Inside_123x170_gif));
+  Cat_Ready = base64::encode(Cat_Ready_123x170_gif, sizeof(Cat_Ready_123x170_gif));
 
   // setup EEPROM and get prefrences
   initEEPROM();
@@ -473,8 +485,11 @@ void loop() {
     frameTrace();
   }
 
-if (state < LOG)  processWebRequest();       // if requested, display web page only if not in menus
-
+  if (state < LOG) processWebRequest();       // if requested, display web page only if not in menus
+  if (webIndicatorTimeout > 0) {
+    webIndicatorTimeout --;
+    if (webIndicatorTimeout == 0) lcd.fillCircle(LCD_WIDTH-3, LCD_HEIGHT-3, 2, black); // turn off indicator
+  }
   // try to wait the delay for each loop (unless code takes longer during a loop)
   currentMilli = millis();
   if ((currentMilli - lastMilli) < loopDurationMS) {
@@ -498,15 +513,21 @@ if (state < LOG)  processWebRequest();       // if requested, display web page o
 
 void frameReady() {
   if (frameFirstTime) {
-    displayInOutHeading(89, Cat_Unknown_89x170_gif);
+    displayInOutHeading(123, Cat_Ready_123x170_gif);
     displayNowAction = "Ready";
     displayCurrentAction = "Awaiting</br>Movement";
-    webColor = convertRgb565ToRgb888(magenta);
+    webColor = magenta;
     displayCenter(18, magenta, center, 58, displayNowAction.c_str());
     displayCenter(12, medmagenta, center, 90, "Awaiting");
     displayCenter(12, medmagenta, center, 112, "Movement");
-
-    displayCenter(9, grey, center, 150, "Short press for options");
+    if (sensorValid) {
+      displayPriorAction = "";
+    } else {
+      displayPriorAction = "Sensor Inactive";
+      displayCenter(18, red, center, 130, displayPriorAction.c_str());
+    }
+      
+    displayCenter(9, grey, center, 150, "Short press - options");
     for (int i = 0; i < 4; i++) {
       indicatorOn[i] = false;
     }
@@ -528,9 +549,9 @@ void frameReady() {
 
 void frameInside() {
   if (frameFirstTime) {
-    displayInOutHeading(93, Cat_Inside_Sitting_93x170_gif);
+    displayInOutHeading(123, Cat_Inside_123x170_gif);
     displayNowAction = "Now Inside";
-    webColor = convertRgb565ToRgb888(insideColor);
+    webColor = insideColor;
     displayCenter(18, insideColor, center, 54, displayNowAction.c_str());
     for (int i = 0; i < 4; i++) {
       indicatorOn[i] = false;
@@ -585,9 +606,9 @@ void frameInside() {
 
 void frameOutside() {
   if (frameFirstTime) {
-    displayInOutHeading(123, Cat_Outside_Sitting_123x170_gif);
+    displayInOutHeading(123, Cat_Outside_123x170_gif);
     displayNowAction = "Now Outside";
-    webColor = convertRgb565ToRgb888(outsideColor);
+    webColor = outsideColor;
     displayCenter(18, outsideColor, center, 54, displayNowAction.c_str());
     for (int i = 0; i < 4; i++) {
       indicatorOn[i] = false;
@@ -645,9 +666,9 @@ void frameLog() {
   if (frameFirstTime) {
     displayNowAction = "Options";
     displayCurrentAction = "";
-    displayPriorAction = "Sensor Inactive";
+    displayPriorAction = "";
     displayPercentAction = "";
-    webColor = convertRgb565ToRgb888(purple);
+    webColor = purple;
     WiFiServer server(80);
 
     optionsStarted = true;
@@ -1604,6 +1625,8 @@ void processWebRequest() {
           // if the current line is blank, you got two newline characters in a row.
           // that's the end of the client HTTP request, so send a response:
           if (currentLine.length() == 0) {
+            webIndicatorTimeout = 5;           // 500 ms to leave indicator on
+            lcd.fillCircle(LCD_WIDTH-3, LCD_HEIGHT-3, 2, medblue); // indicator
             //HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
             // and a content-type so the client knows what's coming, then a blank line:
             if (fetchRequest) {
@@ -1615,43 +1638,58 @@ void processWebRequest() {
                 if (debug) Serial.println("Web page update! (205)");
               }
             } else {
-              client.println("HTTP/1.1 200 OK");
-              //client.print("ETag: \"");
-              //client.print(currentLogPtr);    
-              //client.println("\"");
-              client.println("Content-type:text/html");
-              client.println();
+              String lineDisplay;
+              lineDisplay = "HTTP/1.1 200 OK\n";
+              lineDisplay += "Content-type:text/html\n";
               // the content of the HTTP response follows the header:
+              client.print(lineDisplay);
               client.print(webPageTop);
               sprintf(tempChar, "%d.%d", currentLogPtr, timeinfo.tm_mday);
               tempText = tempChar;
-              //Serial.println(tempText);
               client.print(tempText);// insert log ptr & day into JavaScript for cached updates
               client.print(webPageVersion);
-              client.print(webColor);
+              client.print(convertRgb565ToRgb888(webColor));
               client.print(webPageMiddle);
-              String lineDisplay;
+              client.print(pawImage);   // clunky as IDE doesn't allow long strings like html does
+              // convert webColor to degrees of hue change for the paw background line
+              int webHue = 0;
+              if (webColor == magenta) webHue = 280;
+              else if (webColor == green) webHue = 60;
+              else if (webColor == babyblue) webHue = 170;
+              client.print(webHue);        // degrees to change hue of paw background
+              client.print(webPageAfterPaw);
+                            
+              lineDisplay = "";
               if (displayNowAction == "") {
                 lineDisplay = "<div class=\"stat-now\">Inactive</div>";
               } else {
                 lineDisplay = "<div class=\"stat-now\">" + displayNowAction + "</div>";
               }
-              client.print(lineDisplay);
               if (displayCurrentAction != "") {
-                lineDisplay = "<div class=\"stat-grey\">" + displayCurrentActionHead + "</div>";
-                client.print(lineDisplay);
-                lineDisplay = "<div class=\"stat-at\">" + displayCurrentAction + "</div>";
+                lineDisplay += "<div class=\"stat-grey\">" + displayCurrentActionHead + "</div>";
+                lineDisplay += "<div class=\"stat-at\">" + displayCurrentAction + "</div>";
               } else {
-                lineDisplay = "<div class=\"stat-grey\">Awaiting User Action</div>";
+                lineDisplay += "<div class=\"stat-grey\">Awaiting User Action</div>";
               }
-              client.print(lineDisplay);
               if (displayPriorAction != "") {
-                lineDisplay = "<div class=\"stat-grey\">" + displayPriorAction + "</div>";
-                client.print(lineDisplay);
+                lineDisplay += "<div class=\"stat-grey\">" + displayPriorAction + "</div>";
               }
               if (displayPercentAction != "") {
-                lineDisplay = "<div class=\"stat-grey\">" + displayPercentAction + "</div>";
-                client.print(lineDisplay);
+                lineDisplay += "<div class=\"stat-grey\">" + displayPercentAction + "</div>";
+              }
+              lineDisplay += "</div>";
+              client.println(lineDisplay);
+              if ((state == INSIDE) || (state == OUTSIDE) || (state == READY)) {
+                // display pet image on side of status
+                client.print("<div class=\"right-section\"><img src=\"data:image/gif;base64,");
+                if (state == INSIDE) {
+                  client.print(Cat_Inside);   // base64 version
+                } else if (state == OUTSIDE) {
+                  client.print(Cat_Outside);  // base64 version
+                } else {
+                  client.print(Cat_Ready);    // base64 version
+                }
+                client.println("\" width=\"246\" height=\"340\"></div>");
               }
               client.print(webPageBottom1);
 

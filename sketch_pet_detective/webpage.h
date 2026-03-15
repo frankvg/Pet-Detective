@@ -12,9 +12,10 @@ transfered every 6 seconds. When a full page refresh occurs, it can take several
 seconds for our slow ESP32 processor to generate the page.
 
 Since we don't have a file system, we converted our 32-bit paw-print icon into 
-base64 data so we could still display a shortcut icon.
+base64 data so we could still display a shortcut icon and a larger inverted
+paw print for the backgound (see near the bottom of this page for more details).
 
-11-Feb-2026 (c) FAQware
+11-Mar-2026 (c) FAQware
 
 */
 
@@ -67,33 +68,34 @@ gAAMAAAwHgAAHHEAAD/gAAAgwAAAAAATAAAAHwAAAA+AAAAPgQAAB+cAAAf/AAAH/wAAB/8AIA//
 ADAP/4B4H/+Afn//wf//" />
 <title>Pet Detective</title>
 <script>
-async function refreshCheck() {
- showlog = "n";
- try {
-  const queryString = window.location.search;
-  if (queryString != null) {
-   const urlParams = new URLSearchParams(queryString);
-   if (urlParams != null) {
-    if (urlParams.get('log') == "y") showlog = "y";
+window.onload = function() {
+  async function refreshCheck() {
+   showlog = "n";
+   try {
+    const queryString = window.location.search;
+    if (queryString != null) {
+     const urlParams = new URLSearchParams(queryString);
+     if (urlParams != null) {
+      if (urlParams.get('log') == "y") showlog = "y";
+     }
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set("log", showlog);
+    url.searchParams.set("ver", ")HTML_PAGE";
+
+  const String webPageVersion = R"HTML_PAGE(");
+    const response = await fetch(url.href);
+    if (response.status == 205) { 
+     // changed, so force refresh page
+     url.searchParams.delete("ver");
+     window.location.href = url.href;
+    }
+   } catch (error) {
+     console.error(error.message);
    }
   }
-  const url = new URL(window.location.href);
-  url.searchParams.set("log", showlog);
-  url.searchParams.set("ver", ")HTML_PAGE";
-
-const String webPageVersion = R"HTML_PAGE(");
-  const response = await fetch(url.href);
-  if (response.status == 205) { 
-   // changed, so force refresh page
-   url.searchParams.delete("ver");
-   window.location.href = url.href;
-  }
- } catch (error) {
-   console.error(error.message);
- }
- //window.location.href = url.href;
-}
-setInterval(refreshCheck, 6000);	
+  setInterval(refreshCheck, 6000);	
+};
 </script>
 <!-- <meta http-equiv="refresh" content="30"> -->
 <style>
@@ -102,95 +104,156 @@ setInterval(refreshCheck, 6000);
 
 const String webPageMiddle = R"HTML_PAGE(;
 }
+body {
+background-color: #000;
+}
 * {
 margin: 0;
 padding:0;
 box-sizing:border-box;
-background-color:#000;
 font-family: Verdana; sans-serif;
 text-align: center;
 color: #6A67EF;
-font-size: 12px;	
+font-size: 20px;	
+}
+.module {
+position: relative;
+}
+.module::before {
+content: "";
+position: absolute;
+top: 0; left: 0;
+width: 100%; height: 100%;
+background-image: url()HTML_PAGE";
+
+const String webPageAfterPaw = R"HTML_PAGE(deg) brightness(80%);
+background-color: #000000;
+background-repeat: repeat-x;
+background-position: 0px 300px;
+}
+.module-inside {
+position: relative;
 }
 .stat-box {
 border: solid var(--pet-color);
-border-radius: 7px;
+border-radius: 10px;
 margin: 0 auto;
-padding: 0 38px 20px;
+padding: 0 57px 20px;
 font-style: italic;
 width: fit-content;
+background-color: black;
 }
 .stat-now {
 font-style:normal;
-font-size: 36px;
+font-weight:bold;
+font-size: 54px;
 color: var(--pet-color);
-padding-bottom: 12px;
+padding-bottom: 18px;
 }
 .stat-at {
 font-style:normal;
-font-size: 36px;
+font-size: 54px;
 color: var(--pet-color);
 opacity: .8;
-padding-bottom: 10px;
+padding-bottom: 15px;
 }
 .stat-grey {
 font-style:normal;
-font-size: 22px;
+font-size: 33px;
 color: #BBB;
-padding-bottom: 10px;
+padding-bottom: 15px;
 }
 .stat {
 transform: translatey(-60%);
 width: max-content;
 font-style:italic;
-padding: 0 8px;
+padding: 0 12px;
 color: #CCC;
-font-size: 16px;	
+font-size: 24px;
+background-color: black;	
 }
 .gradient-text {
-font-size: 48px; 
-background-image: linear-gradient(to bottom, #FFF, #A5A0FE); 
+font-size: 82px; 
+background-image: linear-gradient(to bottom, #FFF, #4641CC); 
 -webkit-background-clip: text;
 -webkit-text-fill-color: transparent;
 display: inline-block; 
 font-style:italic;
 font-weight: 100;
 font-family: "Poetsen One", sans-serif; 
-padding-right:20px;
-padding-left:20px;
+padding-right:30px;
+padding-left:30px;
 margin-top: 20px;
-margin-bottom: 30px;
+margin-bottom: 25px;
 }  
 .log-box {
 border: solid #8000FF;
-padding-right:12px;
-padding-left:12px;
+padding-right:30px;
+padding-left:30px;
 }
 table th {
 color: #3372FF;
 text-align: center;
 font-style:normal;
-font-size: 13px;
+font-size: 20px;
 }
 table td {
 color: #A0A0C0;
 font-style:normal;
-font-size: 13px;
-padding-right:5px;
-padding-left:5px;
+font-size: 20px;
+padding-right:8px;
+padding-left:8px;
 }
-
+.container {
+display: flex;
+flex-wrap: nowrap;
+}
+.left-section {
+}
+.right-section {
+padding-left:20px;
+width: 246;
+}
 </style>
 </head>
 <body>
+<div class="module">
+<div class="module-inside">
 <h1 class="gradient-text">Pet Detective</h1>
 <div class="stat-box">
-<div class="stat">Status</div>)HTML_PAGE";
+<div class="stat">Status</div>
+<div class="container">
+<div class="left-section">)HTML_PAGE";
 
 const String webPageBottom1 = R"HTML_PAGE(
+</div>
+</div>
+</div>
 </div>
 Copyright 2026 FAQware<br>)HTML_PAGE";
 
 const String webPageBottom2 = R"HTML_PAGE(
+</div>
+</div>
 </body>
 </html>)HTML_PAGE";
+
+// This is a single paw png image used in the repeating background line. It 
+// also has the hue filter. We change the hue rather than having 4 different 
+// colored paw images
+
+const String pawImage = "data:image/png;base64,"
+"iVBORw0KGgoAAAANSUhEUgAAACwAAAAsCAMAAAApWqozAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSB"
+"JbWFnZVJlYWR5ccllPAAAAGBQTFRF/7QAAAAApnUA15gAmWwAZUcANycA6aUAGxMAdVMASzUA86"
+"sAJxsAxIoAUjoAu4QA/bMAjWQAhF0AEg0ADAgABgQACQcAXUIAAwIAz5IAQy8AAgEAAQEA354A+"
+"bAABAMAJqidogAAAaZJREFUeNrUVd26gyAMo4r4P6ronBPd+7/lASluO8J2vV4B5oshaZWxny9e"
+"DNV67OZk/oQFU4oQ+V0DlFFsrSwYmm3HNvtGxsAJuOrs5uLWdwxjsSRwYzaS1tcI2JMBpIxVmtY"
+"1fgEnrB5pqesIc6YP0V4FqJhm7tl6dizvMTdST8dZB6/OvHOmSWtfJ4iuPZiHPOTZImZkctkRBb"
+"KZ5Pf/JaMLY2i909wcuvzEdlJBby9qxHKEpbRsrfVO5PbaQt3bJ3ggqbZrckldN2dTYvulsk+G9"
+"AD7AIZzAEhJTsdJQeBHEm5aK/EZs46ZigU9up1ak1p9kx0n4UfqT+atoaN+N9Kq0pfcetJ78Evq"
+"8uaOjNP77fcOMjOCGW2WV4H8sUeAZpi8fhjNdbNQ6tgKvVS5Hzxn+9hiF7l5bUyuBbyWWlcXwRR"
+"q6gneSyA3rTWW+GG6n9Wz9LDxvXJ1Al/X2KBkcK4sMoLrIwB+5GFwqQNg6ILUWxHCQni65yAxqO"
+"BHQwaxWoWZg2DIvjg3ipKX7ga6in3q5NQUoupl7WRlhRIcf/3H9yfAADLIEzo6PvVqAAAAAElFT"
+"kSuQmCC"
+");\n"
+"filter: hue-rotate(";
