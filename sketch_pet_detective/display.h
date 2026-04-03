@@ -15,8 +15,9 @@ LCD Display related includes, defines, variables and code
 #include <Fonts/FreeSans12pt7b.h>
 #include <Fonts/FreeSans18pt7b.h>
 #include <Fonts/FreeMono9pt7b.h>
-#include "GIF_images.h"     // cats, logos, indicators
-
+#include "GIF_general.h"     // logos and indicators
+#include "GIF_cats.h"        // Cat images
+#include "GIF_dogs.h"        // Dog images
 
 //Define the size of the screen
 #define LCD_HEIGHT  170     // after rotation!
@@ -40,10 +41,15 @@ void displayChoice(int color, int x, int y, int val, const char *bufFalse, const
 void displayInOutHeading(int width, const uint8_t *buf);
 void displayHeading(const char *lastLine, const char *buf);
 void displayRightClear(int font, int color, int x, int y, int width, const char *buf);
+void ShowGifCatDog(int16_t x_loc, int16_t y_loc, const uint8_t *catName, const uint8_t *dogName);
 void ShowGif (int16_t x_loc, int16_t y_loc, const uint8_t *filename);
 void displayZone();
 void setTextColorLCD(int color565);
 
+
+#define CATS 0
+#define DOGS 1
+int petImages = CATS;
 bool lcdDim = false;    // set to true for dimmer colors
 int percentIncrease = 40;
 
@@ -83,7 +89,7 @@ int heading = center - 122/2 + 5;   // Secondary pet detective centering
 bool frameFirstTime = true;   // within each frame, what is static when firstTime
 
 
-#define STARTUP      0
+#define STARTUP      0    // action states
 #define READY        1
 #define OUTSIDE      2
 #define INSIDE       3
@@ -94,13 +100,14 @@ bool frameFirstTime = true;   // within each frame, what is static when firstTim
 #define HOURS        7
 #define GMTADJ       8
 #define COLOR        9
-#define ABOUT       10
-#define NOMORE      11
+#define PET_IMAGES  10
+#define ABOUT       11
+#define NOMORE      12
 
-#define ERROR       12    // stand-alone functions
-#define WIFI_RESET  13 
-#define WIFI_SETUP  14 
-#define TRACE       15
+#define ERROR       13    // stand-alone functions
+#define WIFI_RESET  14 
+#define WIFI_SETUP  15 
+#define TRACE       16
 
 int state      = 0;
 int priorState = 0;           //  used to skip repaint of some graphics when same as before
@@ -108,7 +115,7 @@ int lastState  = 0;
 int frameCounter    = 0;      // within each frame, counter for refresh of part of display
 
 // Display "Pet Detective" graphic and GIF image on right
-void displayInOutHeading(int width, const uint8_t *buf) {
+void displayInOutHeading(int width, const uint8_t *catbuf, const uint8_t *dogbuf) {
   frameFirstTime = false;
   if ((priorState == READY) || (priorState == INSIDE) || (priorState == OUTSIDE)) {
     // no need for Pet Detective graphic - only blackout other areas
@@ -118,7 +125,7 @@ void displayInOutHeading(int width, const uint8_t *buf) {
     lcd.fillScreen(black);
     ShowGif(center-122/2, 2, Pet_Detective_Text_122x17_gif);
   }
-  ShowGif(LCD_WIDTH-width, 0, buf);
+  ShowGifCatDog(LCD_WIDTH-width, 0, catbuf, dogbuf);
 }
 
 
@@ -136,9 +143,6 @@ void displayHeading(const char *lastLine, const char *buf) {
     lcd.fillRect(0, 26, LCD_WIDTH, LCD_HEIGHT-26, black);    // clear only text area, not graphics
   }
   displayLeft(18, purple, 2, 26, buf);
-
-  //ShowGif(LCD_WIDTH/2-61, 0, Pet_Detective_Text_122x17_gif);
-  //displayCenter(12, purple, LCD_WIDTH/2, 41, buf);
 
   if (strlen(lastLine) != 0) {
     displayLeft(9, grey, 0, 160, "Short press for ");

@@ -239,21 +239,34 @@ const String webPageBottom2 = R"HTML_PAGE(
 </html>)HTML_PAGE";
 
 // This is a single paw png image used in the repeating background line. It 
-// also has the hue filter. We change the hue rather than having 4 different 
-// colored paw images
+// also has the hue filter at end. We change the hue rather than having 4 
+// different colored paw images.
 
-const String pawImage = "data:image/png;base64,"
-"iVBORw0KGgoAAAANSUhEUgAAACwAAAAsCAMAAAApWqozAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSB"
-"JbWFnZVJlYWR5ccllPAAAAGBQTFRF/7QAAAAApnUA15gAmWwAZUcANycA6aUAGxMAdVMASzUA86"
-"sAJxsAxIoAUjoAu4QA/bMAjWQAhF0AEg0ADAgABgQACQcAXUIAAwIAz5IAQy8AAgEAAQEA354A+"
-"bAABAMAJqidogAAAaZJREFUeNrUVd26gyAMo4r4P6ronBPd+7/lASluO8J2vV4B5oshaZWxny9e"
-"DNV67OZk/oQFU4oQ+V0DlFFsrSwYmm3HNvtGxsAJuOrs5uLWdwxjsSRwYzaS1tcI2JMBpIxVmtY"
-"1fgEnrB5pqesIc6YP0V4FqJhm7tl6dizvMTdST8dZB6/OvHOmSWtfJ4iuPZiHPOTZImZkctkRBb"
-"KZ5Pf/JaMLY2i909wcuvzEdlJBby9qxHKEpbRsrfVO5PbaQt3bJ3ggqbZrckldN2dTYvulsk+G9"
-"AD7AIZzAEhJTsdJQeBHEm5aK/EZs46ZigU9up1ak1p9kx0n4UfqT+atoaN+N9Kq0pfcetJ78Evq"
-"8uaOjNP77fcOMjOCGW2WV4H8sUeAZpi8fhjNdbNQ6tgKvVS5Hzxn+9hiF7l5bUyuBbyWWlcXwRR"
-"q6gneSyA3rTWW+GG6n9Wz9LDxvXJ1Al/X2KBkcK4sMoLrIwB+5GFwqQNg6ILUWxHCQni65yAxqO"
-"BHQwaxWoWZg2DIvjg3ipKX7ga6in3q5NQUoupl7WRlhRIcf/3H9yfAADLIEzo6PvVqAAAAAElFT"
-"kSuQmCC"
+const String pawImage = 
+"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAA0CAIAAAB+Y02gAAAAGXRFWHRTb2"
+"Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAABTNJREFUeNrsWG1QVFUYfpblY0FAJDDA5XMIzA+Qkk"
+"BDMBuzEsKZmqLpT4yQjoPiRM1o6mBiNTYNCjhYGpUBUcFgigbFl5ECEgwIzCgLW2IpLojILl/CfnQPLF"
+"52OXfv4jIjP3jmzs7dc55zznPf8973vu8RaM7jscMcGsxjzkCgOfv4RZjNBUvMCcc0IyKMuPoUiE2HbQ"
+"xc38UH32Jw2BC5fxC/1qOsCWNKoyYXaAr5lY6pELEfNW1sS5A3KlOw0IZCTj2HA3kYekDufV1RvJ/8zo"
+"IlTv2uo4BB4z+Iz6Qwd55C0ndaBQw6uhCTCo2aZ36jRGSVU+TnV+Niqw4ttwrHi/VpDVJUtpgsQjFEnp"
+"uKo0UsbWAYid/QaaVXeZbgfztudEPDwSlpwtAIbKzI/clS9CroNKkMhlfhtwTj6lwYVaKuQ0vLqeKkKV"
+"Umb4fjAkMPwbgew7mnQFMnJ+cJW5O3w9MJQjOo1PTeu3IyS3Mn55YxWCE2eTsWWCLAg3O8rYhweuSG1g"
+"hfyrsdzCPyXa8Hcy7gvogQNGpOgp8Lgjx45texhHwIhwoR+QXeykDhX2z71ghYW1IWYLZp7VOE4O7IKS"
+"LpVf44xPrE0CjCD+PqTe3fn6/glQBkbydu5WKPPZFInhbgN6+C87jTPeMJOxEUI/qEZ72wNRy8bsdaIu"
+"03VsEEipux8ch4DNbgo0i8tEKn18YSn76hHWslRFyE/tTOdvhxB4QC9oll99H6L0bHuH0iv46isbETH+"
+"aRXnMBihKJFHtr0u7vgpIkLHdl9/VgNEJ82IFPu6FqL3ydtb217Xg+BS67sHIfxLvxU62OTwg0k7FW9B"
+"4eKGm2EqDtM/gu1v5VM64zDAcbeuzKr8ffPVjljpdXwkKobc+pQWwWlGodZ6rZh2DvadshENA3jFn1RM"
+"VU08HBmu5flkK8E4IDkYgKhIWZtvFyu74CBkzUySijRcwlDpyOc6EZRuY+epdKhe3f6yuYQPk1mk+E+X"
+"KKkHZDpYQxEUXvyq5G6y36nDI5LU5EB3J/gdS4N0B5ykvtyKhAbi1u99EtkXuFc87FdrQ4ERUAvychkd"
+"F9086Kfd2Zz8TpWnx8Hjd6WUJcGD6JhpOtjp/+IeEUQV4czUPHnLSJOZAZQ/yW8gVyg0iopTGfiU3piD"
+"3NKphw3pN/YmkyiltYI9/qI8kpFzYt4wjbL/rh8y2UAQkRWkLbHTx3BKXX6PP2DiLqBLIua8kkKHFAZI"
+"HYUO584v0NOLdt/LM0iW1hiFtDujq68UKajgGmg3n34n9AYSPhu9mTbaIicT3pnZLyZ1BIw2Moa8MdOV"
+"Z7IEhMWnoGsDYVHT1GFTNMRK/YiRAvrDuGS1L9Xqb94i5ijCm1aBr/pKMqrEtDXecMiiq3hWjdg+vdWJ"
+"9Ohj9EmA/OxsPRZuZ1R9KZmSlgcLsfCQVY44nSHYjwJZpCvfDVm6hMgKP19ArsKM905RJs/NJQ9mYARX"
+"GIXG5yLcokyrt/eUQFDPZegFrNb2me9O7rGrR2PXq5zYzNa+CP7oYswYS8Q6Wmlv3HqoyxBHffmRZ0yU"
+"0VUf8fJN0miChonp0zkEqpCcVPdefsiJD08OS6hkTIBmZHhMjchArM32kWFJCcL9CE7ch8DVtycH+E3s"
+"uUhyFihHvDexEkd1HSjoZpSRSThRS8jWXOPJYQaA4b6u5SIKMWFVLc7Ie5Gdzs4OOIYDFCxVi9hM2nJ9"
+"AiQ3YTiq6jo5fE5s3+OLgBHg7GHKamzJ9jzp/yz8VT/uT5U/5x/C/AAOyklWlFdh4LAAAAAElFTkSuQm"
+"CC"
 ");\n"
 "filter: hue-rotate(";

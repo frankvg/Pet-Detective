@@ -2,7 +2,7 @@
 
     Using a time-of-flight sensor, it detects and records when a pet exits and returns.
 
-    Last Build: 12-Mar-2026
+    Last Build: 31-Mar-2026
     FAQware Copyright 2026
 
     Licensed under a Creative Commons Attribution-NonCommercial 4.0 International Public
@@ -47,7 +47,7 @@
     range is limited 300 mm in software.
 */
 const bool debug = false;  // false for normal operation
-const char version[] = "1.5";
+const char version[] = "1.6";
 
 
 #include <WiFi.h>                       // external libraries
@@ -149,7 +149,7 @@ WiFiUDP ntpUDP;
 time_t now;
 tm timeinfo;
 const char* monthsOfTheYear[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-const String zoneAbbreivations[] = { "HDT", "AKT", "PST", "MST", "CST", "EST", "AST" };  // only covering limited zones
+const String zoneAbbreivations[] = { "HST", "AKT", "PST", "MST", "CST", "EST", "AST" };  // only covering limited zones
 int zone;
 int zoneIndex;  // 0 to 13
 unsigned long lastTime = 0;
@@ -223,9 +223,9 @@ int buttonAction = NONE;
 String debugLastAction = "";
 
 // base64 images for web
-String Cat_Outside;         
-String Cat_Inside;
-String Cat_Ready;
+String Pet_Outside;         
+String Pet_Inside;
+String Pet_Ready;
 
 // ======================= Run Once ==============================
 void setup() {
@@ -247,11 +247,7 @@ void setup() {
   Serial.println("");
   Serial.println("====== Pet Detective Started ======");
 
-  // build base64 images for web
-  Cat_Outside = base64::encode(Cat_Outside_123x170_gif, sizeof(Cat_Outside_123x170_gif));
-  Cat_Inside = base64::encode(Cat_Inside_123x170_gif, sizeof(Cat_Inside_123x170_gif));
-  Cat_Ready = base64::encode(Cat_Ready_123x170_gif, sizeof(Cat_Ready_123x170_gif));
-
+  
   // setup EEPROM and get prefrences
   initEEPROM();
   hour24 = EEPROM.read(EE_HOUR24);    // set to 1 if using 24 hour format
@@ -267,6 +263,20 @@ void setup() {
       daylightOffset_sec = temp * 3600;  // valid
     }
   }
+  if (EEPROM.read(EE_PET_IMAGES) == CATS) {
+    petImages = CATS;
+    // build base64 images for web
+    Pet_Outside = base64::encode(Cat_Outside_123x170_gif, sizeof(Cat_Outside_123x170_gif));
+    Pet_Inside = base64::encode(Cat_Inside_123x170_gif, sizeof(Cat_Inside_123x170_gif));
+    Pet_Ready = base64::encode(Cat_Ready_123x170_gif, sizeof(Cat_Ready_123x170_gif));
+
+  } else {
+    petImages = DOGS;
+    // build base64 images for web
+    Pet_Outside = base64::encode(Dog_Outside_123x170_gif, sizeof(Dog_Outside_123x170_gif));
+    Pet_Inside = base64::encode(Dog_Inside_123x170_gif, sizeof(Dog_Inside_123x170_gif));
+    Pet_Ready = base64::encode(Dog_Ready_123x170_gif, sizeof(Dog_Ready_123x170_gif));
+  }
   if ((ssid.length() == 0) && (password.length() == 0)) {   // if ssid/password not hard coded, get from EEPROM
     ssid = EEPROM.readString(EE_SSID);
     password = EEPROM.readString(EE_PASSWORD);
@@ -274,7 +284,7 @@ void setup() {
   convertWiFiInfo();
   if (debug) Serial.println("EEPROM done");
 
-  ShowGif(0, 30, Cat_Detective_Jacket_141x140_gif);  // position x, y, and raw data from GIF file
+  ShowGifCatDog(0, 30, Cat_Detective_Jacket_141x140_gif, Dog_Detective_Jacket_141x140_gif);  // position x, y, and raw data from GIF array
   ShowGif(155, 20, Pet_Detective_Text_155x62_gif);
   displayLeft(9, berry, 170, 120, "Sensor Init...");
 
@@ -292,13 +302,15 @@ void setup() {
     sensorValid = true;
   }
 
-  myImager.setResolution(4 * 4);                // Enable 4x4
-  myImager.setRangingFrequency(60);             // set 60Hz (default is 1Hz!)
+  if (sensorValid) {
+    myImager.setResolution(4 * 4);                // Enable 4x4
+    myImager.setRangingFrequency(60);             // set 60Hz (default is 1Hz!)
 
-  imageResolution = myImager.getResolution();   // Query sensor for current resolution - either 4x4 or 8x8
-  imageWidth = sqrt(imageResolution);           // Calculate printing width
+    imageResolution = myImager.getResolution();   // Query sensor for current resolution - either 4x4 or 8x8
+    imageWidth = sqrt(imageResolution);           // Calculate printing width
 
-  myImager.startRanging();
+    myImager.startRanging();
+  }
 
   //Poll sensor for new data
   delay(100);
@@ -473,6 +485,8 @@ void loop() {
     frameGmtAdj();
   } else if (state == COLOR) {
     frameColor();
+  } else if (state == PET_IMAGES) {
+    framePetImages();
   } else if (state == ABOUT) {
     frameAbout();
   } else if (state == ERROR) {        // rest of these frames are special cases  
@@ -513,18 +527,19 @@ void loop() {
 
 void frameReady() {
   if (frameFirstTime) {
-    displayInOutHeading(123, Cat_Ready_123x170_gif);
+    displayInOutHeading(123, Cat_Ready_123x170_gif, Dog_Ready_123x170_gif);
     displayNowAction = "Ready";
     displayCurrentAction = "Awaiting</br>Movement";
     webColor = magenta;
     displayCenter(18, magenta, center, 58, displayNowAction.c_str());
-    displayCenter(12, medmagenta, center, 90, "Awaiting");
-    displayCenter(12, medmagenta, center, 112, "Movement");
     if (sensorValid) {
+      displayCenter(12, medmagenta, center, 90, "Awaiting");
+      displayCenter(12, medmagenta, center, 112, "Movement");
       displayPriorAction = "";
     } else {
+      displayCenter(12, red, center, 90, "Sensor");
+      displayCenter(12, red, center, 112, "Inactive");
       displayPriorAction = "Sensor Inactive";
-      displayCenter(18, red, center, 130, displayPriorAction.c_str());
     }
       
     displayCenter(9, grey, center, 150, "Short press - options");
@@ -549,7 +564,7 @@ void frameReady() {
 
 void frameInside() {
   if (frameFirstTime) {
-    displayInOutHeading(123, Cat_Inside_123x170_gif);
+    displayInOutHeading(123, Cat_Inside_123x170_gif, Dog_Inside_123x170_gif);
     displayNowAction = "Now Inside";
     webColor = insideColor;
     displayCenter(18, insideColor, center, 54, displayNowAction.c_str());
@@ -606,7 +621,7 @@ void frameInside() {
 
 void frameOutside() {
   if (frameFirstTime) {
-    displayInOutHeading(123, Cat_Outside_123x170_gif);
+    displayInOutHeading(123, Cat_Outside_123x170_gif, Dog_Outside_123x170_gif);
     displayNowAction = "Now Outside";
     webColor = outsideColor;
     displayCenter(18, outsideColor, center, 54, displayNowAction.c_str());
@@ -1282,7 +1297,6 @@ void frameGmtAdj() {
   }
 }
 
-
 void frameColor() {
   if (frameFirstTime) {
     displayHeading("Next", "Color");
@@ -1322,6 +1336,40 @@ void frameColor() {
   }
 }
 
+void framePetImages() {
+  if (frameFirstTime) {
+    displayHeading("Next", "Pet Images");
+    if (petImages == CATS) {
+      displayLeft(9, grey, 0, 140, "Long press for dogs");
+      ShowGif(LCD_WIDTH-123, 0, Cat_Ready_123x170_gif);
+    } else {
+      displayLeft(9, grey, 0, 140, "Long press for cats");
+      ShowGif(LCD_WIDTH-123, 0, Dog_Ready_123x170_gif);
+    }
+    ShowGif(LCD_WIDTH-124, 2, Pet_Detective_Text_122x17_gif);
+  }
+  if (buttonAction == LONG) {
+    if (petImages == CATS) {
+      petImages = DOGS;
+      // build base64 images for web
+      Pet_Outside = base64::encode(Dog_Outside_123x170_gif, sizeof(Dog_Outside_123x170_gif));
+      Pet_Inside = base64::encode(Dog_Inside_123x170_gif, sizeof(Dog_Inside_123x170_gif));
+      Pet_Ready = base64::encode(Dog_Ready_123x170_gif, sizeof(Dog_Ready_123x170_gif));
+    } else {
+      petImages = CATS;
+      // build base64 images for web
+      Pet_Outside = base64::encode(Cat_Outside_123x170_gif, sizeof(Cat_Outside_123x170_gif));
+      Pet_Inside = base64::encode(Cat_Inside_123x170_gif, sizeof(Cat_Inside_123x170_gif));
+      Pet_Ready = base64::encode(Cat_Ready_123x170_gif, sizeof(Cat_Ready_123x170_gif));
+    }
+    EEPROM.write(EE_PET_IMAGES, petImages);
+    EEPROM.commit();
+    frameFirstTime = true;    // display changed image
+  } else if (buttonAction == SHORT) {
+    exitState();  // exit
+  }
+}
+
 void frameAbout() {
   if (frameFirstTime) {
     displayHeading("End", "About");
@@ -1336,13 +1384,14 @@ void frameAbout() {
   }
 
   if (buttonAction == VERYLONG) {
-    EEPROM.write(EE_HOUR24, 0);
-    EEPROM.write(EE_COLOR, 0);
-    EEPROM.write(EE_THRESHOLD_HI, 0);  // this forces an auto-calibrate on the next boot
+    EEPROM.write(EE_HOUR24, 0);         // am/pm mode
+    EEPROM.write(EE_COLOR, 0);          
+    EEPROM.write(EE_THRESHOLD_HI, 0);   // this forces an auto-calibrate on the next boot
     EEPROM.write(EE_THRESHOLD_LO, 0);
     EEPROM.write(EE_GMT_ADJUST, 0xF8);  // Time zone -8
     EEPROM.write(EE_DST_ADJUST, 1);     // DST on
     EEPROM.write(EE_DIM, 0);            // full brightness
+    EEPROM.write(EE_PET_IMAGES, CATS);  // Cats
     for (int i = 0; i < logSize; i++) {
       actionType[i] = 0;
       actionLog[i] = 0;
@@ -1426,7 +1475,7 @@ void setState() {
     frameFirstTime = true;
   } else {
     //Poll sensor for new data
-    if (myImager.isDataReady() == true) {
+    if (sensorValid && myImager.isDataReady() == true) {
       if (myImager.getRangingData(&measurementData)) {  //Read distance data into array
         // The ST library returns the data transposed from zone mapping shown in datasheet
         // Pretty-print data with increasing y, decreasing x to reflect reality
@@ -1683,11 +1732,11 @@ void processWebRequest() {
                 // display pet image on side of status
                 client.print("<div class=\"right-section\"><img src=\"data:image/gif;base64,");
                 if (state == INSIDE) {
-                  client.print(Cat_Inside);   // base64 version
+                  client.print(Pet_Inside);   // base64 version
                 } else if (state == OUTSIDE) {
-                  client.print(Cat_Outside);  // base64 version
+                  client.print(Pet_Outside);  // base64 version
                 } else {
-                  client.print(Cat_Ready);    // base64 version
+                  client.print(Pet_Ready);    // base64 version
                 }
                 client.println("\" width=\"246\" height=\"340\"></div>");
               }

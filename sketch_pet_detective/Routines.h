@@ -17,6 +17,7 @@ int hour24;                 // 0 = 12h, 1=24 hour
 #define EE_GMT_ADJUST   7   // Note - is a positive or negative number.  -8 for PST is 0xF8
 #define EE_DST_ADJUST   8   // Set to 0 = DST off, or 1 DST on
 #define EE_DIM          9   // Set to 0 = Full Brightness, 1 = Dimmer 
+#define EE_PET_IMAGES  10   // Set to 0 = Cat images, 1 = Dog images
 
 #define EE_SSID        20   // SSID is up to 32 characters
 #define EE_PASSWORD    60   // SSID is up to 63 characters

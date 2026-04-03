@@ -220,3 +220,11 @@ void ShowGif (int16_t x_loc, int16_t y_loc, const uint8_t *filename) {
     }
   } while (true);
 }
+
+void ShowGifCatDog(int16_t x_loc, int16_t y_loc, const uint8_t *catName, const uint8_t *dogName) {
+  if (petImages == CATS) {
+    ShowGif(x_loc, y_loc, catName);
+  } else {
+    ShowGif(x_loc, y_loc, dogName);
+  }
+}
